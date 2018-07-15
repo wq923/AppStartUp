@@ -8,11 +8,35 @@ import android.util.Log;
  *
  */
 
-public class App extends Application{
+public class App extends Application {
+
+    private static final String TAG = "App";
 
     @Override
     public void onCreate() {
         super.onCreate();
+
+        Log.d(TAG, "onCreate: ");
+
+//                        initSDK();
+//
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                initSDK();
+            }
+        }).start();
+    }
+
+
+    private int initSDK() {
+
+        int j = 0;
+
+        for (int i = 0; i < 60000000; i++) {
+            j++;
+        }
+        return j;
     }
 }
 
@@ -28,12 +52,4 @@ public class App extends Application{
 
 
 
-//    private static final String TAG = "App";
 
-//Log.d(TAG, "onCreate: ");
-//
-//        try {
-//        Thread.sleep(2000);
-//        } catch (InterruptedException e) {
-//        e.printStackTrace();
-//        }

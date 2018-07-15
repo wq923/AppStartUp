@@ -35,7 +35,7 @@ Android App 的启动分为三种类型：
         }
     }
 
-然后，将整个类加入 AndroidManifest.xml 文件，其他不改变。
+然后，将这个类加入 AndroidManifest.xml 文件，其他不改变。
 
     <?xml version="1.0" encoding="utf-8"?>
     <manifest xmlns:android="http://schemas.android.com/apk/res/android"
@@ -81,3 +81,127 @@ Android App 的启动分为三种类型：
 上面的 ThisTime 和 TotalTime 表示启动时间，为 318ms。可见，一个空项目的启动时间是很快的，而且基本感觉不到任何卡顿。
 
 ### 3.1 启动速度杀手——耗时操作
+
+耗时操作是指，在App类的onCreate()函数或首页Activity生命周期函数里执行了大量同步的耗时代码。比如：项目中用到的大量第三方sdk的初始化、文件操作、数据库操作、网络请求等。
+
+#### （1）、模拟耗时操作
+下面在以上函数中模拟一下耗时操作。
+
+在 App 类模拟耗时操作：
+    public class App extends Application {
+
+        private static final String TAG = "App";
+
+        @Override
+        public void onCreate() {
+            super.onCreate();
+
+            Log.d(TAG, "onCreate: ");
+
+            initSDK();
+        }
+
+
+        //模拟耗时操作
+        private int initSDK() {
+
+            int j = 0;
+
+            for (int i = 0; i < 60000000; i++) {
+                j++;
+            }
+            return j;
+        }
+    }
+
+结果，通过 adb 命令行查看启动耗时：
+
+    F:\github\StartUp>adb shell am start -W com.github.wq923.startup/com.github.wq923.startup.MainActivity
+    Starting: Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] cmp=com.github.wq923.star
+    tup/.MainActivity }
+    Status: ok
+    Activity: com.github.wq923.startup/.MainActivity
+    ThisTime: 2764
+    TotalTime: 2764
+    Complete
+
+可见启动时间增长到了2764ms，接近3s，App启动出现明显卡顿。同样，将这段代码放到 Activity 的onCreate()、onResume()、onStart()函数里，效果一样。
+
+#### （2）、解决方法
+将同步代码，改为异步执行。对上述代码进行简单修改，创建子线程调用initSDK()：
+
+    //异步调用
+    new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    initSDK();
+                }
+            }).start();
+
+修改后，观察启动时间：
+
+    F:\github\StartUp>adb shell am start -W com.github.wq923.startup/com.github.wq923.startup.MainActivity
+    Starting: Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] cmp=com.github.wq923.star
+    tup/.MainActivity }
+    Status: ok
+    Activity: com.github.wq923.startup/.MainActivity
+    ThisTime: 268
+    TotalTime: 268
+    Complete
+
+可见，异步调用耗时代码，不阻塞主线程的情况下，启动时间就恢复了。
+因此，优化耗时操作，可以先查找项目中App类onCreate函数和首页Activity生命周期函数里是否有耗时操作，如果有，则将其通过异步的方式调用。
+
+另一方面，很多第三方SDK都建议放在Application初始化，我们也可以将其延迟到使用的地方才进行初始化操作；优先让第一屏界面绘制出来。
+
+#### （3）、进一步优化
+如果通过异步加载，用户可以很快进入App主页，提高启动速度，但此时如果数据没有准备好，将意味着用户必须在主页进行等待，这样的交互显然也是不够友好的。
+
+为此，目前常见的 App 都设计了 Splash 页面，比如：
+![Alt Text](https://github.com/wq923/AppStartUp/blob/master/image/qq.png)
+![Alt Text](https://github.com/wq923/AppStartUp/blob/master/image/hangbanguanjia.png)
+![Alt Text](https://github.com/wq923/AppStartUp/blob/master/image/jingdong.png)
+![Alt Text](https://github.com/wq923/AppStartUp/blob/master/image/feicahngzhun.png)
+![Alt Text](https://github.com/wq923/AppStartUp/blob/master/image/tianmao.png)
+
+Splash页面既可以让用户感觉很快的进入了应用，又可以通过该页面短暂的（2s-6s）的呈现，在内部完成数据异步加载，sdk初始化等耗时操作，为主页面准备数据，大大提高了用户体验。
+同时，站在程序开发的角度，Splash页面的设计将大量初始化等业务无关的逻辑从App子类和主页面剥离出来，提高了启动速度，降低了代码耦合性。
+
+Splash 页面创建
+新建 SplashActivity.java 类：
+
+    //闪屏页
+    public class SplashActivity extends Activity {
+
+        @Override
+        protected void onCreate(Bundle savedInstanceState) {
+            super.onCreate(savedInstanceState);
+            setContentView(R.layout.activity_splash);
+        }
+    }
+新建 activity_splash.xml 布局文件：
+
+    //设置背景为闪屏界面，splash图片随机找
+    <?xml version="1.0" encoding="utf-8"?>
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:orientation="vertical" android:layout_width="match_parent"
+        android:background="@drawable/splash"
+        android:layout_height="match_parent">
+
+    </LinearLayout>
+
+在 AndroidManifest.xml文件中注册activity，并设置为启动页面
+
+        <activity android:name=".SplashActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+
+
+
+
+
