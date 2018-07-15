@@ -1,7 +1,6 @@
 package com.github.wq923.startup;
 
 import android.content.Intent;
-import android.content.pm.ProviderInfo;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
