@@ -242,3 +242,138 @@ Splash 页面创建
 这届佩里西奇踢得真棒！
 
 
+## 4、简单模拟微博、汽车之家客户端启动页
+
+微博Android客户端广告不是每次冷启动都弹出来（我手机是Smartizen T1，4.4的），并且绝大多数情况是弹不出来，为了写
+这个文档，我试了不下几十次，都没能复现广告，简直比Bug还难复现，不知道什么原因！而ios客户端广告也有这么问题，这是
+什么策略？
+
+
+微博作为一个平台应用，用户对广告的容忍度稍强于社交类应用。客户端冷启动后，首先弹出微博logo页面如下：
+
+![Alt Text](https://github.com/wq923/AppStartUp/blob/master/image/wb.png)
+
+经过观察，不仅是冷启动，所有页面的热启动、温启动基本也都会短暂跳出该页面，可见所有页面的主题基本都设置了这个背景图。
+
+大概经过几秒后，上方弹出广告，但是logo仍然可见，如下图：
+
+（一直无法复现广告页，累了，换成汽车之家吧！）
+汽车之家的闪屏logo页，不是所有的页面都把它设置成主题；实现跟微博略有不同，赶紧之家的设计更好些。
+微博的设计在低端机上可能效果好些，友好的等待页面，高端机上就会一闪而过，不会有什么影响，可是中端机就蛋疼了，每次都
+闪烁一次，好晃眼呀！
+看下汽车之家的启动页StartingWindow：
+![Alt Text](https://github.com/wq923/AppStartUp/blob/master/image/qczj.png)
+![Alt Text](https://github.com/wq923/AppStartUp/blob/master/image/qcad.png)
+
+
+
+### 下面开始模拟启动实现：
+
+（1）修改主题样式，启动页全屏且无状态栏（java 代码和 Theme 设置）
+
+        //通过设置Activity主题，取消标题栏和状态栏
+        <style name="AppSplash" parent="Theme.AppCompat.NoActionBar">
+                <item name="android:windowBackground">@drawable/xy</item>
+                <item name="android:windowNoTitle">true</item>
+                <item name="android:windowFullscreen">true</item>
+                <item name="android:windowIsTranslucent">true</item>
+                <item name="colorPrimary">@color/colorPrimary</item>
+                <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+                <item name="colorAccent">@color/colorAccent</item>
+        </style>
+
+通过代码，设置无标题栏和状态栏：
+
+                //去除标题栏
+                requestWindowFeature(Window.FEATURE_NO_TITLE);
+                //全屏展示
+                getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN , WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+                setContentView(R.layout.activity_splash);
+
+（2）、设置一个布局，添加一个ImageView，用来存放广告图片
+
+        <?xml version="1.0" encoding="utf-8"?>
+        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <ImageView
+                android:id="@+id/id_img_advert"
+                android:scaleType="fitXY"
+                android:layout_width="match_parent"
+                android:layout_height="530dp" />
+
+        </LinearLayout>
+
+（3）在闪屏页面定时3s显示广告图片，定时2s跳转到主页。
+
+    public class SplashActivity extends AppCompatActivity {
+
+        private static final int MSG_ADVERT = 0;
+        private static final int MSG_INIT = 1;
+        private static final int DELAY_AD = 3000;
+        private static final int DELAY_TIME = 5000;
+
+
+        private Handler mHandler = new Handler(){
+
+            @Override
+            public void handleMessage(Message msg) {
+
+                switch (msg.what) {
+                    case MSG_ADVERT:
+                    {
+                        ((ImageView)findViewById(R.id.id_img_advert)).setImageResource(R.drawable.ad);
+                        break;
+                    }
+                    case MSG_INIT:
+                    {
+                        Intent i = new Intent(SplashActivity.this, MainActivity.class);
+                        startActivity(i);
+                        break;
+                    }
+                }
+            }
+        };
+
+        @Override
+        protected void onCreate(Bundle savedInstanceState) {
+            super.onCreate(savedInstanceState);
+
+            //去除标题栏
+    //        requestWindowFeature(Window.FEATURE_NO_TITLE);
+    //        //全屏展示
+    //        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN , WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+            setContentView(R.layout.activity_splash);
+
+            //展示闪屏页，等待 3s 后，跳转到主页面。等待的这 3s 很关键！
+            //此处可以进行异步初始化，数据预加载等操作
+            //满足了快速启动 app，且主页面少等待的需求
+        }
+
+        @Override
+        protected void onResume() {
+            super.onResume();
+            mHandler.sendEmptyMessageDelayed(MSG_INIT, DELAY_TIME);
+            mHandler.sendEmptyMessageDelayed(MSG_ADVERT, DELAY_AD);
+        }
+
+        @Override
+        protected void onPause() {
+            super.onPause();
+            mHandler.removeMessages(DELAY_AD);
+            mHandler.removeMessages(MSG_INIT);
+        }
+    }
+
+（4）效果如下（使用了闲鱼的闪屏页和汽车之家的广告页，有些不搭）
+
+![Alt Text](https://github.com/wq923/AppStartUp/blob/master/image/first.png)
+![Alt Text](https://github.com/wq923/AppStartUp/blob/master/image/second.png)
+
+
+
