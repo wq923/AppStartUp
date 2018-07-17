@@ -262,8 +262,7 @@ Splash 页面创建
 微博的设计在低端机上可能效果好些，友好的等待页面，高端机上就会一闪而过，不会有什么影响，可是中端机就蛋疼了，每次都
 闪烁一次，好晃眼呀！
 看下汽车之家的启动页StartingWindow：
-![Alt Text](https://github.com/wq923/AppStartUp/blob/master/image/qczj.png)
-![Alt Text](https://github.com/wq923/AppStartUp/blob/master/image/qcad.png)
+![Alt Text](https://github.com/wq923/AppStartUp/blob/master/image/qczj.png)![Alt Text](https://github.com/wq923/AppStartUp/blob/master/image/qcad.png)
 
 
 
@@ -372,8 +371,7 @@ Splash 页面创建
 
 （4）效果如下（使用了闲鱼的闪屏页和汽车之家的广告页，有些不搭）
 
-![Alt Text](https://github.com/wq923/AppStartUp/blob/master/image/first.png)
-![Alt Text](https://github.com/wq923/AppStartUp/blob/master/image/second.png)
+![Alt Text](https://github.com/wq923/AppStartUp/blob/master/image/first.png)![Alt Text](https://github.com/wq923/AppStartUp/blob/master/image/second.png)
 
 
 
